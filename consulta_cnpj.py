@@ -22,40 +22,104 @@ except ImportError:
 
 # =============================================================================
 # FATORES DE AJUSTE POR SETOR
+# Distribuidoras e atacadistas tem faturamento MUITO maior (alto giro)
 # =============================================================================
 FATOR_SETOR = {
+    # DISTRIBUIDORAS E ATACADO (faturamento alto, mas variavel)
+    "distribuidora": 3.0,
+    "distribuidor": 3.0,
+    "atacado": 2.5,
+    "atacadista": 2.5,
+    "representacao": 2.5,
+    "representante": 2.5,
+    "importacao": 3.0,
+    "exportacao": 3.0,
+    "logistica": 2.5,
+
+    # COMBUSTIVEIS E ENERGIA
+    "posto de combustivel": 5.0,
+    "combustivel": 5.0,
+    "gas": 2.5,
+    "energia": 3.0,
+
+    # SUPERMERCADOS E ALIMENTOS
+    "supermercado": 3.0,
+    "hipermercado": 4.0,
+    "mercado": 2.0,
+    "mercearia": 0.8,
+    "minimercado": 1.0,
+    "hortifruti": 1.2,
+    "frigorifico": 3.5,
+    "acougue": 1.3,
+
+    # ALIMENTACAO
     "restaurante": 1.2, "lanchonete": 0.9, "bar": 0.8, "padaria": 1.3,
-    "acougue": 1.1, "pizzaria": 1.0, "sorveteria": 0.7, "cafe": 0.6,
-    "supermercado": 1.8, "mercado": 1.5, "mercearia": 0.8, "minimercado": 1.0,
-    "hortifruti": 0.9, "vestuario": 0.85, "roupa": 0.85, "calcados": 0.8,
-    "moda": 0.85, "confeccao": 0.9, "bijuteria": 0.6, "joalheria": 1.4,
-    "otica": 1.1, "farmacia": 1.6, "drogaria": 1.6, "cosmetico": 0.9,
-    "perfumaria": 0.8, "salao": 0.7, "barbearia": 0.5, "estetica": 0.8,
-    "clinica": 1.3, "consultorio": 1.2, "odontolog": 1.3, "laboratorio": 1.5,
-    "material de construcao": 1.4, "construcao": 1.3, "ferragem": 1.0,
-    "automovel": 1.8, "veiculo": 1.7, "moto": 1.3, "peca": 1.2, "autopeca": 1.2,
+    "pizzaria": 1.0, "sorveteria": 0.7, "cafe": 0.6,
+
+    # VESTUARIO
+    "vestuario": 0.85, "roupa": 0.85, "calcados": 0.8,
+    "moda": 0.85, "confeccao": 1.2, "bijuteria": 0.6, "joalheria": 1.4,
+    "otica": 1.1,
+
+    # SAUDE E BELEZA
+    "farmacia": 2.0, "drogaria": 2.0,
+    "cosmetico": 1.5, "perfumaria": 1.5, "perfume": 1.5,
+    "salao": 0.7, "barbearia": 0.5, "estetica": 0.8,
+    "clinica": 1.5, "consultorio": 1.2, "hospital": 4.0,
+    "odontolog": 1.3, "laboratorio": 2.0,
+
+    # CONSTRUCAO
+    "material de construcao": 2.0, "construcao": 2.0,
+    "construtora": 3.0, "incorporadora": 4.0,
+    "ferragem": 1.2, "cimento": 2.5,
+
+    # VEICULOS
+    "concessionaria": 4.0, "automovel": 3.0, "veiculo": 2.5,
+    "moto": 1.8, "peca": 1.5, "autopeca": 1.5,
     "oficina": 0.9, "mecanica": 0.9, "borracharia": 0.6,
-    "posto de combustivel": 2.5, "combustivel": 2.5, "gas": 1.4,
-    "celular": 1.3, "telefon": 1.2, "eletronico": 1.2, "informatica": 1.0,
-    "moveis": 1.2, "eletrodomestico": 1.3, "colchao": 1.0,
-    "contabil": 1.0, "advocacia": 1.2, "imobiliaria": 1.3,
-    "escola": 1.3, "curso": 0.9, "creche": 0.8,
-    "agropecuaria": 1.3, "veterinaria": 0.9, "pet": 0.9,
-    "hotel": 1.4, "pousada": 1.0, "turismo": 0.9,
-    "papelaria": 0.7, "grafica": 0.9, "lavanderia": 0.7,
+
+    # TECNOLOGIA
+    "celular": 1.5, "telefon": 1.3, "eletronico": 1.5,
+    "informatica": 1.2, "software": 2.0, "tecnologia": 2.0,
+
+    # MOVEIS E ELETRO
+    "moveis": 1.5, "eletrodomestico": 1.8, "colchao": 1.2,
+
+    # SERVICOS
+    "contabil": 1.0, "advocacia": 1.2, "imobiliaria": 1.5,
+    "banco": 5.0, "financeira": 3.0, "credito": 2.5,
+    "seguro": 2.5,
+
+    # EDUCACAO
+    "escola": 1.5, "faculdade": 3.0, "universidade": 4.0,
+    "curso": 0.9, "creche": 0.8,
+
+    # AGRO
+    "agropecuaria": 2.0, "agricola": 2.5, "fazenda": 3.0,
+    "veterinaria": 0.9, "pet": 0.9,
+
+    # HOTELARIA
+    "hotel": 2.0, "pousada": 1.0, "turismo": 1.2,
+
+    # INDUSTRIA
+    "industria": 3.0, "fabrica": 3.0, "manufatura": 2.5,
+    "metalurgica": 2.5, "siderurgica": 4.0,
+
+    # OUTROS
+    "papelaria": 0.7, "grafica": 1.0, "lavanderia": 0.7,
 }
 
 # =============================================================================
-# FAIXA BASE POR PORTE
+# FAIXA BASE POR PORTE (ajustado para ser mais realista)
 # =============================================================================
 FAIXA_PORTE = {
-    "MEI": {"min": 0, "max": 81000, "tipico": 45000},
-    "Micro Empresa": {"min": 81000, "max": 360000, "tipico": 180000},
-    "ME": {"min": 81000, "max": 360000, "tipico": 180000},
-    "Empresa de Pequeno Porte": {"min": 360000, "max": 4800000, "tipico": 1200000},
-    "EPP": {"min": 360000, "max": 4800000, "tipico": 1200000},
-    "Demais": {"min": 4800000, "max": 300000000, "tipico": 15000000},
-    "DESCONHECIDO": {"min": 81000, "max": 360000, "tipico": 150000}
+    "MEI": {"min": 0, "max": 81000, "tipico": 50000},
+    "Micro Empresa": {"min": 81000, "max": 360000, "tipico": 200000},
+    "ME": {"min": 81000, "max": 360000, "tipico": 200000},
+    "Empresa de Pequeno Porte": {"min": 360000, "max": 4800000, "tipico": 2000000},
+    "EPP": {"min": 360000, "max": 4800000, "tipico": 2000000},
+    "Demais": {"min": 4800000, "max": 500000000, "tipico": 25000000},
+    "DESCONHECIDO": {"min": 81000, "max": 360000, "tipico": 180000}
 }
 
 
@@ -125,7 +189,10 @@ def identificar_setor_chave(cnae_descricao):
 
 
 def calcular_fator_idade(data_abertura):
-    """Calcula fator de ajuste baseado na idade da empresa"""
+    """
+    Calcula fator de ajuste baseado na idade da empresa
+    Empresas mais antigas tendem a ter faturamento mais consolidado
+    """
     if not data_abertura or data_abertura == "N/A":
         return 1.0
 
@@ -142,19 +209,21 @@ def calcular_fator_idade(data_abertura):
         anos = (datetime.now() - data).days / 365
 
         if anos < 1:
-            return 0.5
+            return 0.4   # Empresa nova, ainda estabilizando
         elif anos < 2:
-            return 0.7
+            return 0.6
         elif anos < 3:
-            return 0.85
+            return 0.8
         elif anos < 5:
             return 1.0
         elif anos < 10:
-            return 1.1
+            return 1.3   # Empresa estabelecida
+        elif anos < 15:
+            return 1.5   # Empresa consolidada
         elif anos < 20:
-            return 1.15
+            return 1.7   # Empresa madura
         else:
-            return 1.2
+            return 2.0   # Empresa muito consolidada (20+ anos)
 
     except:
         return 1.0
@@ -193,7 +262,7 @@ def calcular_fator_capital(capital_social, porte):
 
 def estimar_faturamento(porte, cnae_descricao, municipio, uf, data_abertura, capital_social):
     """
-    Estimativa de faturamento v3 - com dados IBGE
+    Estimativa de faturamento v4 - melhorada para distribuidoras e empresas grandes
     """
     # Faixa base pelo porte
     faixa = FAIXA_PORTE.get(porte, FAIXA_PORTE["DESCONHECIDO"])
@@ -204,20 +273,32 @@ def estimar_faturamento(porte, cnae_descricao, municipio, uf, data_abertura, cap
     fator_setor = FATOR_SETOR.get(setor_chave, 1.0) if setor_chave else 1.0
 
     # Fator regional (IBGE)
-    fator_regional = calcular_fator_economico_ibge(municipio, uf) if municipio else 0.6
+    # Distribuidoras/atacadistas vendem para outras regioes, menor penalizacao
+    setores_nao_locais = ["distribuidora", "distribuidor", "atacado", "atacadista",
+                          "importacao", "exportacao", "representacao", "industria",
+                          "fabrica", "logistica"]
+
+    if setor_chave in setores_nao_locais:
+        # Empresas que vendem para fora nao sao tao afetadas pela economia local
+        fator_regional = 0.85  # Penalizacao menor
+    else:
+        fator_regional = calcular_fator_economico_ibge(municipio, uf) if municipio else 0.6
 
     # Fator idade
     fator_idade = calcular_fator_idade(data_abertura)
 
-    # Fator capital
-    fator_capital = calcular_fator_capital(capital_social, porte)
+    # Fator capital (menos peso para empresas grandes, capital declarado nem sempre reflete realidade)
+    if porte == "Demais":
+        fator_capital = 1.0  # Ignora capital para empresas grandes
+    else:
+        fator_capital = calcular_fator_capital(capital_social, porte)
 
     # Calculo final
     faturamento = base * fator_setor * fator_regional * fator_idade * fator_capital
 
-    # Limita dentro da faixa legal
-    faturamento_min = faixa["min"] * 0.5 * fator_regional
-    faturamento_max = faixa["max"] * 1.2 * fator_regional
+    # Limita dentro da faixa (mais flexivel para cima)
+    faturamento_min = faixa["min"] * 0.3
+    faturamento_max = faixa["max"] * 2.0  # Permite ir acima do max para empresas excepcionais
     faturamento = max(faturamento_min, min(faturamento, faturamento_max))
 
     return {
