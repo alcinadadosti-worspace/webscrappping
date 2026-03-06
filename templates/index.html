@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics CNPJ - Penedo/AL</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .drag-over { border-color: #3b82f6 !important; background-color: #eff6ff !important; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <header class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">Analytics CNPJ</h1>
+                <p class="text-sm text-gray-500">Analise de empresas - Penedo/AL</p>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="exportarCSV()" class="px-4 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition hidden" id="btnExportCSV">
+                    Exportar CSV
+                </button>
+                <button onclick="exportarJSON()" class="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition hidden" id="btnExportJSON">
+                    Exportar JSON
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 py-6">
+        <!-- Input Section -->
+        <div class="bg-white rounded-xl shadow-sm border p-6 mb-6">
+            <div class="grid md:grid-cols-2 gap-6">
+                <!-- Upload Area -->
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-3">Upload de Arquivo</h3>
+                    <div id="dropZone" class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition">
+                        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                        </svg>
+                        <p class="mt-2 text-sm text-gray-600">Arraste um arquivo ou clique para selecionar</p>
+                        <p class="text-xs text-gray-400 mt-1">CSV, TXT ou Excel</p>
+                        <input type="file" id="fileInput" class="hidden" accept=".csv,.txt,.xlsx,.xls">
+                    </div>
+                </div>
+
+                <!-- Text Area -->
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-3">Ou cole os CNPJs</h3>
+                    <textarea id="cnpjsInput" rows="8" class="w-full border border-gray-300 rounded-xl p-4 text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none" placeholder="Cole os CNPJs aqui (um por linha)">{{ cnpjs_default }}</textarea>
+                    <p class="text-xs text-gray-500 mt-2"><span id="contadorCnpjs">{{ total_default }}</span> CNPJs</p>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="mt-6 flex flex-wrap gap-3 items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <label class="text-sm text-gray-600">
+                        Delay (segundos):
+                        <input type="number" id="delayInput" value="3" min="1" max="10" class="ml-2 w-16 border border-gray-300 rounded-lg px-3 py-1.5 text-sm">
+                    </label>
+                </div>
+                <button onclick="iniciarConsulta()" id="btnConsultar" class="px-6 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                    Consultar CNPJs
+                </button>
+            </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div id="progressSection" class="bg-white rounded-xl shadow-sm border p-6 mb-6 hidden">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-sm font-medium text-gray-700">Consultando CNPJs...</span>
+                <span id="progressText" class="text-sm text-gray-500">0/0</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-3">
+                <div id="progressBar" class="bg-blue-600 h-3 rounded-full transition-all duration-300" style="width: 0%"></div>
+            </div>
+            <p id="progressCnpj" class="text-xs text-gray-500 mt-2"></p>
+        </div>
+
+        <!-- Results Section -->
+        <div id="resultsSection" class="hidden">
+            <!-- Metrics -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div class="bg-white rounded-xl shadow-sm border p-5">
+                    <p class="text-sm text-gray-500">Total Empresas</p>
+                    <p id="metricTotal" class="text-3xl font-bold text-gray-900 mt-1">0</p>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm border p-5">
+                    <p class="text-sm text-gray-500">Faturamento Total</p>
+                    <p id="metricFaturamento" class="text-2xl font-bold text-green-600 mt-1">R$ 0</p>
+                    <p class="text-xs text-gray-400">estimado/ano</p>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm border p-5">
+                    <p class="text-sm text-gray-500">Faturamento Medio</p>
+                    <p id="metricMedia" class="text-2xl font-bold text-blue-600 mt-1">R$ 0</p>
+                    <p class="text-xs text-gray-400">por empresa</p>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm border p-5">
+                    <p class="text-sm text-gray-500">Setores</p>
+                    <p id="metricSetores" class="text-3xl font-bold text-purple-600 mt-1">0</p>
+                </div>
+            </div>
+
+            <!-- Charts -->
+            <div class="grid md:grid-cols-2 gap-6 mb-6">
+                <div class="bg-white rounded-xl shadow-sm border p-5">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Empresas por Setor</h3>
+                    <canvas id="chartSetor"></canvas>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm border p-5">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Faturamento por Porte</h3>
+                    <canvas id="chartPorte"></canvas>
+                </div>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-6 mb-6">
+                <div class="bg-white rounded-xl shadow-sm border p-5">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Top 10 Empresas</h3>
+                    <canvas id="chartTop"></canvas>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm border p-5">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Empresas por Bairro</h3>
+                    <canvas id="chartBairro"></canvas>
+                </div>
+            </div>
+
+            <!-- Table -->
+            <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
+                <div class="p-5 border-b">
+                    <h3 class="text-lg font-semibold text-gray-900">Lista de Empresas</h3>
+                    <input type="text" id="searchTable" placeholder="Buscar empresa..." class="mt-3 w-full md:w-64 border border-gray-300 rounded-lg px-4 py-2 text-sm">
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-4 py-3 text-left font-medium text-gray-600">Empresa</th>
+                                <th class="px-4 py-3 text-left font-medium text-gray-600">Setor</th>
+                                <th class="px-4 py-3 text-left font-medium text-gray-600">Bairro</th>
+                                <th class="px-4 py-3 text-left font-medium text-gray-600">Porte</th>
+                                <th class="px-4 py-3 text-right font-medium text-gray-600">Fat. Anual Est.</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody" class="divide-y divide-gray-100">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="text-center py-6 text-sm text-gray-400">
+        Analytics CNPJ v3.0 | Dados publicos da Receita Federal + IBGE
+    </footer>
+
+    <script>
+        // Variaveis globais
+        let chartSetor, chartPorte, chartTop, chartBairro;
+        let dadosEmpresas = [];
+
+        // Formatar moeda
+        function formatarMoeda(valor) {
+            return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor);
+        }
+
+        // Contador de CNPJs
+        document.getElementById('cnpjsInput').addEventListener('input', function() {
+            const linhas = this.value.trim().split('\n').filter(l => l.trim());
+            document.getElementById('contadorCnpjs').textContent = linhas.length;
+        });
+
+        // Drag and Drop
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+
+        dropZone.addEventListener('click', () => fileInput.click());
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('drag-over');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('drag-over');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('drag-over');
+            const file = e.dataTransfer.files[0];
+            if (file) uploadArquivo(file);
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) uploadArquivo(file);
+        });
+
+        async function uploadArquivo(file) {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch('/api/upload', { method: 'POST', body: formData });
+                const data = await response.json();
+
+                if (data.texto) {
+                    document.getElementById('cnpjsInput').value = data.texto;
+                    document.getElementById('contadorCnpjs').textContent = data.total;
+                    alert(`${data.total} CNPJs carregados do arquivo!`);
+                } else if (data.error) {
+                    alert('Erro: ' + data.error);
+                }
+            } catch (err) {
+                alert('Erro ao processar arquivo');
+            }
+        }
+
+        // Consulta
+        async function iniciarConsulta() {
+            const cnpjs = document.getElementById('cnpjsInput').value;
+            const delay = parseInt(document.getElementById('delayInput').value) || 3;
+
+            if (!cnpjs.trim()) {
+                alert('Insira pelo menos um CNPJ');
+                return;
+            }
+
+            const btn = document.getElementById('btnConsultar');
+            btn.disabled = true;
+            btn.innerHTML = '<svg class="animate-spin h-5 w-5" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Consultando...';
+
+            document.getElementById('progressSection').classList.remove('hidden');
+            document.getElementById('resultsSection').classList.add('hidden');
+
+            try {
+                const response = await fetch('/api/consultar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ cnpjs, delay })
+                });
+
+                if (response.ok) {
+                    monitorarProgresso();
+                } else {
+                    const data = await response.json();
+                    alert('Erro: ' + data.error);
+                    resetarBotao();
+                }
+            } catch (err) {
+                alert('Erro ao iniciar consulta');
+                resetarBotao();
+            }
+        }
+
+        async function monitorarProgresso() {
+            const interval = setInterval(async () => {
+                try {
+                    const response = await fetch('/api/progresso');
+                    const data = await response.json();
+
+                    const percent = data.total > 0 ? (data.atual / data.total * 100) : 0;
+                    document.getElementById('progressBar').style.width = percent + '%';
+                    document.getElementById('progressText').textContent = `${data.atual}/${data.total}`;
+                    document.getElementById('progressCnpj').textContent = data.cnpj ? `Consultando: ${data.cnpj}` : '';
+
+                    if (data.status === 'completed') {
+                        clearInterval(interval);
+                        carregarResultados();
+                        resetarBotao();
+                    }
+                } catch (err) {
+                    console.error(err);
+                }
+            }, 1000);
+        }
+
+        function resetarBotao() {
+            const btn = document.getElementById('btnConsultar');
+            btn.disabled = false;
+            btn.innerHTML = '<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg> Consultar CNPJs';
+        }
+
+        async function carregarResultados() {
+            try {
+                const response = await fetch('/api/resultados');
+                const data = await response.json();
+
+                if (data.empresas && data.empresas.length > 0) {
+                    dadosEmpresas = data.empresas.filter(e => e.status === 'ok');
+                    const analytics = data.analytics;
+
+                    // Atualiza metricas
+                    document.getElementById('metricTotal').textContent = analytics.resumo?.total_encontrados || 0;
+                    document.getElementById('metricFaturamento').textContent = formatarMoeda(analytics.resumo?.faturamento_anual_total || 0);
+                    document.getElementById('metricMedia').textContent = formatarMoeda(analytics.resumo?.faturamento_medio || 0);
+                    document.getElementById('metricSetores').textContent = Object.keys(analytics.por_setor || {}).length;
+
+                    // Cria graficos
+                    criarGraficos(analytics);
+
+                    // Preenche tabela
+                    preencherTabela(dadosEmpresas);
+
+                    // Mostra resultados
+                    document.getElementById('progressSection').classList.add('hidden');
+                    document.getElementById('resultsSection').classList.remove('hidden');
+                    document.getElementById('btnExportCSV').classList.remove('hidden');
+                    document.getElementById('btnExportJSON').classList.remove('hidden');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Erro ao carregar resultados');
+            }
+        }
+
+        function criarGraficos(analytics) {
+            const cores = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
+
+            // Destroi graficos existentes
+            if (chartSetor) chartSetor.destroy();
+            if (chartPorte) chartPorte.destroy();
+            if (chartTop) chartTop.destroy();
+            if (chartBairro) chartBairro.destroy();
+
+            // Grafico por Setor
+            const setores = Object.entries(analytics.por_setor || {}).sort((a, b) => b[1].quantidade - a[1].quantidade).slice(0, 8);
+            chartSetor = new Chart(document.getElementById('chartSetor'), {
+                type: 'doughnut',
+                data: {
+                    labels: setores.map(s => s[0].charAt(0).toUpperCase() + s[0].slice(1)),
+                    datasets: [{
+                        data: setores.map(s => s[1].quantidade),
+                        backgroundColor: cores
+                    }]
+                },
+                options: { responsive: true, plugins: { legend: { position: 'right' } } }
+            });
+
+            // Grafico por Porte
+            const portes = Object.entries(analytics.por_porte || {});
+            chartPorte = new Chart(document.getElementById('chartPorte'), {
+                type: 'bar',
+                data: {
+                    labels: portes.map(p => p[0]),
+                    datasets: [{
+                        label: 'Faturamento',
+                        data: portes.map(p => p[1].faturamento),
+                        backgroundColor: '#3b82f6'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { ticks: { callback: v => 'R$ ' + (v/1000000).toFixed(1) + 'M' } } }
+                }
+            });
+
+            // Top 10 empresas
+            const top = analytics.top_empresas?.slice(0, 10) || [];
+            chartTop = new Chart(document.getElementById('chartTop'), {
+                type: 'bar',
+                data: {
+                    labels: top.map(e => e.razao_social?.substring(0, 20) + '...'),
+                    datasets: [{
+                        label: 'Faturamento',
+                        data: top.map(e => e.faturamento),
+                        backgroundColor: '#10b981'
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: { x: { ticks: { callback: v => 'R$ ' + (v/1000).toFixed(0) + 'k' } } }
+                }
+            });
+
+            // Por Bairro
+            const bairros = Object.entries(analytics.por_bairro || {}).sort((a, b) => b[1].quantidade - a[1].quantidade).slice(0, 8);
+            chartBairro = new Chart(document.getElementById('chartBairro'), {
+                type: 'bar',
+                data: {
+                    labels: bairros.map(b => b[0]),
+                    datasets: [{
+                        label: 'Empresas',
+                        data: bairros.map(b => b[1].quantidade),
+                        backgroundColor: '#8b5cf6'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        function preencherTabela(empresas) {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = empresas.map(e => `
+                <tr class="hover:bg-gray-50">
+                    <td class="px-4 py-3">
+                        <div class="font-medium text-gray-900">${e.razao_social || ''}</div>
+                        <div class="text-xs text-gray-500">${e.cnpj || ''}</div>
+                    </td>
+                    <td class="px-4 py-3 text-gray-600">${e.setor_classificado || '-'}</td>
+                    <td class="px-4 py-3 text-gray-600">${e.bairro || '-'}</td>
+                    <td class="px-4 py-3">
+                        <span class="px-2 py-1 text-xs rounded-full ${e.porte?.includes('Micro') ? 'bg-blue-100 text-blue-700' : e.porte?.includes('Pequeno') ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}">
+                            ${e.porte || '-'}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3 text-right font-medium text-green-600">${formatarMoeda(e.faturamento_anual_estimado || 0)}</td>
+                </tr>
+            `).join('');
+        }
+
+        // Busca na tabela
+        document.getElementById('searchTable').addEventListener('input', function() {
+            const termo = this.value.toLowerCase();
+            const filtradas = dadosEmpresas.filter(e =>
+                (e.razao_social || '').toLowerCase().includes(termo) ||
+                (e.setor_classificado || '').toLowerCase().includes(termo) ||
+                (e.bairro || '').toLowerCase().includes(termo)
+            );
+            preencherTabela(filtradas);
+        });
+
+        // Exportar
+        function exportarCSV() {
+            window.location.href = '/api/exportar/csv';
+        }
+
+        function exportarJSON() {
+            window.location.href = '/api/exportar/json';
+        }
+
+        // Carrega resultados do cache ao iniciar
+        window.onload = async () => {
+            try {
+                const response = await fetch('/api/resultados');
+                const data = await response.json();
+                if (data.empresas && data.empresas.length > 0 && data.from_cache) {
+                    carregarResultados();
+                }
+            } catch (err) {}
+        };
+    </script>
+</body>
+</html>
