@@ -92,7 +92,7 @@ def criar_grafico_pizza(dados, valores, nomes, titulo):
 # =============================================================================
 st.sidebar.markdown("## 📋 Entrada de CNPJs")
 
-# Lista default de CNPJs (Penedo/AL)
+# Lista completa de CNPJs (Penedo/AL)
 CNPJS_DEFAULT = """44.716.179/0001-53
 09.397.499/0005-10
 14.093.245/0001-15
@@ -102,14 +102,145 @@ CNPJS_DEFAULT = """44.716.179/0001-53
 31.809.250/0001-09
 19.692.117/0001-01
 02.747.709/0001-80
-00.804.030/0001-50"""
+00.804.030/0001-50
+64.138.749/0001-82
+35.642.768/0004-96
+00.360.305/0001-04
+00.000.000/0049-36
+07.237.373/0001-20
+60.746.948/0617-66
+41.180.092/0006-20
+48.571.661/0001-01
+51.662.502/0001-19
+10.819.605/0001-62
+22.979.541/0001-46
+05.740.521/0001-07
+32.860.231/0006-76
+11.857.003/0001-62
+54.319.915/0001-93
+26.219.718/0001-67
+52.517.120/0001-64
+63.718.970/0001-47
+48.321.599/0001-91
+04.344.950/0001-94
+58.257.255/0001-14
+06.017.690/0001-78
+00.416.698/0001-20
+21.640.463/0001-98
+09.150.613/0001-80
+17.549.879/0001-28
+04.867.949/0001-44
+19.097.309/0001-70
+03.035.253/0001-99
+55.494.946/0001-43
+40.188.607/0001-61
+04.281.915/0001-73
+01.777.031/0001-16
+60.388.042/0001-73
+05.349.471/0001-23
+21.387.751/0001-82
+42.119.864/0001-77
+34.832.249/0001-85
+62.838.995/0001-11
+52.799.163/0001-80
+54.226.172/0001-07
+48.460.035/0001-30
+15.099.434/0001-68
+25.199.495/0001-50
+17.723.320/0001-72
+47.804.779/0001-61
+55.075.878/0001-88
+53.445.726/0001-02
+14.750.618/0001-83
+12.711.339/0001-85
+00.341.350/0063-14
+00.394.502/0373-07
+00.404.850/0004-06
+00.430.642/0004-73
+00.432.229/0006-00
+00.631.670/0001-06
+01.140.148/0001-94
+01.207.148/0001-64
+01.234.329/0001-80
+01.362.381/0001-11
+01.521.064/0001-09
+01.620.416/0001-75
+01.672.001/0001-45
+01.681.228/0006-61
+01.817.989/0001-93
+01.877.254/0001-55
+01.900.127/0001-20
+02.056.047/0001-00
+02.229.221/0001-61"""
 
-# Area de texto para CNPJs
-cnpjs_input = st.sidebar.text_area(
-    "Cole os CNPJs (um por linha):",
-    value=CNPJS_DEFAULT,
-    height=200
+# Opcao de entrada
+st.sidebar.markdown("### Escolha como inserir os CNPJs:")
+metodo_entrada = st.sidebar.radio(
+    "Metodo de entrada:",
+    ["📝 Colar/Digitar", "📁 Upload de Arquivo"],
+    label_visibility="collapsed"
 )
+
+cnpjs_input = ""
+
+if metodo_entrada == "📁 Upload de Arquivo":
+    st.sidebar.markdown("**Formatos aceitos:** CSV, TXT, Excel")
+    arquivo = st.sidebar.file_uploader(
+        "Selecione o arquivo:",
+        type=["csv", "txt", "xlsx", "xls"],
+        label_visibility="collapsed"
+    )
+
+    if arquivo:
+        try:
+            if arquivo.name.endswith(('.xlsx', '.xls')):
+                # Excel
+                df_upload = pd.read_excel(arquivo)
+                # Procura coluna com CNPJ
+                col_cnpj = None
+                for col in df_upload.columns:
+                    if 'cnpj' in col.lower():
+                        col_cnpj = col
+                        break
+                if col_cnpj:
+                    cnpjs_input = '\n'.join(df_upload[col_cnpj].astype(str).tolist())
+                else:
+                    # Usa primeira coluna
+                    cnpjs_input = '\n'.join(df_upload.iloc[:, 0].astype(str).tolist())
+                st.sidebar.success(f"✅ {len(cnpjs_input.split(chr(10)))} CNPJs carregados")
+            else:
+                # CSV ou TXT
+                conteudo = arquivo.read().decode('utf-8')
+                # Tenta detectar se e CSV
+                if ',' in conteudo or ';' in conteudo:
+                    import io
+                    df_upload = pd.read_csv(io.StringIO(conteudo), sep=None, engine='python')
+                    col_cnpj = None
+                    for col in df_upload.columns:
+                        if 'cnpj' in col.lower():
+                            col_cnpj = col
+                            break
+                    if col_cnpj:
+                        cnpjs_input = '\n'.join(df_upload[col_cnpj].astype(str).tolist())
+                    else:
+                        cnpjs_input = '\n'.join(df_upload.iloc[:, 0].astype(str).tolist())
+                else:
+                    # Texto simples, um CNPJ por linha
+                    cnpjs_input = conteudo
+                st.sidebar.success(f"✅ Arquivo carregado")
+        except Exception as e:
+            st.sidebar.error(f"Erro ao ler arquivo: {e}")
+            cnpjs_input = CNPJS_DEFAULT
+    else:
+        st.sidebar.info("👆 Selecione um arquivo")
+        cnpjs_input = ""
+else:
+    # Area de texto para CNPJs
+    cnpjs_input = st.sidebar.text_area(
+        "Cole os CNPJs (um por linha):",
+        value=CNPJS_DEFAULT,
+        height=300
+    )
 
 # Configuracoes
 st.sidebar.markdown("---")
